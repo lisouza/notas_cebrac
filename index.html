@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sistema de Notas</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#faf8f5;--card:#fff;--tx:#1f2328;--mut:#6b7280;--ac:#2f6f5e;--act:#fff;--bd:#e3ded6;--bad:#b42318}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#16181a;--card:#1f2224;--tx:#ececec;--mut:#9aa0a6;--ac:#6fc2a9;--act:#10201b;--bd:#33383b;--bad:#f2877d}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#16181a;--card:#1f2224;--tx:#ececec;--mut:#9aa0a6;--ac:#6fc2a9;--act:#10201b;--bd:#33383b;--bad:#f2877d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:0 0 12px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+nav button{flex:1;padding:9px 6px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;font:inherit;cursor:pointer}
+nav button.on{background:var(--ac);color:var(--act);border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+input,select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.row>input{flex:1 1 150px}
+.btn{padding:8px 12px;border:1px solid var(--ac);background:var(--ac);color:var(--act);border-radius:8px;font:inherit;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.s{background:transparent;color:var(--ac)}
+.x{background:none;border:none;color:var(--bad);cursor:pointer;font-size:1rem}
+.li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--bd)}
+.mut{color:var(--mut);font-size:.9rem}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+td input[type=number]{width:80px}
+.ok{color:var(--ac);font-weight:600}.no{color:var(--bad);font-weight:600}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+</style></head><body><main>
+<h1>Sistema de Notas</h1>
+<nav id="nav"></nav>
+<div id="v"></div>
+</main>
+<script>
+const MEDIA=7;
+let S={alunos:[],materias:[],notas:{}},tab='alunos',sel={m:'',b:'1'};
+try{const r=localStorage.getItem('notas-v1');if(r)S=JSON.parse(r)}catch(e){}
+const save=()=>{try{localStorage.setItem('notas-v1',JSON.stringify(S))}catch(e){}};
+const uid=()=>Math.random().toString(36).slice(2,9);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>n.toFixed(1).replace('.',',');
+const key=(a,m,b)=>a+'|'+m+'|'+b;
+function med(ns){const f=ns.filter(n=>n!=null);return f.length?f.reduce((x,y)=>x+y,0)/f.length:null}
+function sit(md){return md==null?'—':md>=MEDIA?'Aprovado':'Recuperação'}
+const tabs=[['alunos','Alunos'],['materias','Matérias'],['notas','Notas'],['boletim','Boletins'],['backup','Backup']];
+function go(t){tab=t;render()}
+function render(){
+  $('nav').innerHTML=tabs.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+  $('v').innerHTML=({alunos:vAlunos,materias:vMaterias,notas:vNotas,boletim:vBoletim,backup:vBackup})[tab]();
+}
+function vAlunos(){
+  return `<div class="card"><div class="row"><input id="an" placeholder="Nome do aluno"><input id="ae" type="email" placeholder="E-mail"><input id="at" placeholder="WhatsApp (com DDD)"></div>
+  <button class="btn" onclick="addAluno()">Cadastrar aluno</button></div>
+  <div class="card">${S.alunos.length?S.alunos.map(a=>`<div class="li"><div>${esc(a.nome)}<div class="mut">${esc(a.email||'sem e-mail')} · ${esc(a.tel||'sem WhatsApp')}</div></div><button class="x" onclick="del('alunos','${a.id}')">Remover</button></div>`).join(''):'<span class="mut">Nenhum aluno cadastrado.</span>'}</div>`;
+}
+function addAluno(){const n=$('an').value.trim();if(!n)return;S.alunos.push({id:uid(),nome:n,email:$('ae').value.trim(),tel:$('at').value.trim()});save();render()}
+function vMaterias(){
+  return `<div class="card"><div class="row"><input id="mn" placeholder="Nome da matéria"><button class="btn" onclick="addMat()">Adicionar</button></div></div>
+  <div class="card">${S.materias.length?S.materias.map(m=>`<div class="li"><span>${esc(m.nome)}</span><button class="x" onclick="del('materias','${m.id}')">Remover</button></div>`).join(''):'<span class="mut">Nenhuma matéria cadastrada.</span>'}</div>`;
+}
+function addMat(){const n=$('mn').value.trim();if(!n)return;S.materias.push({id:uid(),nome:n});save();render()}
+function del(k,id){if(!confirm('Remover? As notas ligadas também serão apagadas.'))return;S[k]=S[k].filter(x=>x.id!==id);for(const q in S.notas)if(q.split('|').includes(id))delete S.notas[q];save();render()}
+function vNotas(){
+  if(!S.alunos.length||!S.materias.length)return '<div class="card mut">Cadastre ao menos um aluno e uma matéria para lançar notas.</div>';
+  if(!S.materias.some(m=>m.id===sel.m))sel.m=S.materias[0].id;
+  return `<div class="card"><div class="row"><select onchange="sel.m=this.value;render()">${S.materias.map(m=>`<option value="${m.id}" ${m.id===sel.m?'selected':''}>${esc(m.nome)}</option>`).join('')}</select>
+  <select onchange="sel.b=this.value;render()">${[1,2,3,4].map(b=>`<option value="${b}" ${String(b)===sel.b?'selected':''}>Módulo ${b}</option>`).join('')}</select></div>
+  <div class="tw"><table><tr><th>Aluno</th><th>Nota (0 a 10)</th></tr>${S.alunos.map(a=>{const v=S.notas[key(a.id,sel.m,sel.b)];return `<tr><td>${esc(a.nome)}</td><td><input type="number" min="0" max="10" step="0.1" value="${v==null?'':v}" onchange="setNota('${a.id}',this.value)"></td></tr>`}).join('')}</table></div></div>`;
+}
+function setNota(a,v){const k=key(a,sel.m,sel.b);v=v.replace(',','.');if(v===''||isNaN(+v))delete S.notas[k];else S.notas[k]=Math.min(10,Math.max(0,+v));save()}
+function linhas(a){return S.materias.map(m=>{const ns=[1,2,3,4].map(b=>S.notas[key(a.id,m.id,b)]);const md=med(ns);return{m:m.nome,ns,md}})}
+function txt(a){
+  const L=linhas(a).map(l=>l.m+': '+l.ns.map((n,i)=>'Mód. '+(i+1)+': '+(n==null?'–':fmt(n))).join(' | ')+' → média '+(l.md==null?'–':fmt(l.md))+' ('+sit(l.md)+')');
+  return 'Boletim de '+a.nome+'\n\n'+L.join('\n')+'\n\nMédia para aprovação: '+MEDIA;
+}
+function vBoletim(){
+  if(!S.alunos.length)return '<div class="card mut">Cadastre alunos para gerar os boletins.</div>';
+  return S.alunos.map(a=>{
+    const ls=linhas(a);
+    const tel=(a.tel||'').replace(/\D/g,'');const wa=tel?(tel.length<=11?'55'+tel:tel):'';
+    const t=encodeURIComponent(txt(a));
+    return `<div class="card"><strong>${esc(a.nome)}</strong>
+    <div class="tw"><table><tr><th>Matéria</th><th>Mód. 1</th><th>Mód. 2</th><th>Mód. 3</th><th>Mód. 4</th><th>Média</th><th>Situação</th></tr>
+    ${ls.map(l=>`<tr><td>${esc(l.m)}</td>${l.ns.map(n=>`<td>${n==null?'–':fmt(n)}</td>`).join('')}<td>${l.md==null?'–':fmt(l.md)}</td><td class="${l.md==null?'':l.md>=MEDIA?'ok':'no'}">${sit(l.md)}</td></tr>`).join('')}</table></div>
+    <div class="acts">
+    ${a.email?`<a class="btn" target="_blank" rel="noopener" href="mailto:${esc(a.email)}?subject=${encodeURIComponent('Boletim de '+a.nome)}&body=${t}">Enviar por e-mail</a>`:''}
+    ${wa?`<a class="btn s" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${t}">Enviar por WhatsApp</a>`:''}
+    <button class="btn s" onclick="copiar('${a.id}',this)">Copiar texto</button></div></div>`}).join('');
+}
+async function copiar(id,b){const a=S.alunos.find(x=>x.id===id);try{await navigator.clipboard.writeText(txt(a));b.textContent='Copiado ✓'}catch(e){b.textContent='Não foi possível copiar'}}
+function vBackup(){
+  return `<div class="card"><strong>Backup dos dados</strong>
+  <p class="mut">Baixe um arquivo com todos os alunos, matérias e notas. Ele contém dados dos alunos, então guarde em local seguro.</p>
+  <div class="acts"><button class="btn" onclick="exportar()">Baixar backup</button>
+  <label class="btn s">Restaurar backup<input type="file" accept=".json,application/json" hidden onchange="importar(this)"></label></div>
+  <p id="bk" class="mut"></p></div>`;
+}
+function exportar(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));
+  a.download='backup-notas-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importar(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!Array.isArray(d.alunos)||!Array.isArray(d.materias)||!d.notas||typeof d.notas!=='object')throw 0;
+      if(!confirm('Isso substitui os dados atuais pelos do backup. Continuar?')){inp.value='';return}
+      S={alunos:d.alunos,materias:d.materias,notas:d.notas};save();render();
+      $('bk').textContent='Backup restaurado.';
+    }catch(e){$('bk').textContent='Arquivo inválido.'}
+  };
+  r.readAsText(f);
+}
+render();
+</script></body></html>
